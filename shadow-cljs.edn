@@ -1,0 +1,7 @@
+;; shadow-cljs configuration
+{:deps true
+ :builds
+ {:script
+  {:target :esm
+   :modules {:vouch-matrix {:init-fn vouch.matrix.app/main}}
+   :output-dir "out/vouch-matrix"}}}
