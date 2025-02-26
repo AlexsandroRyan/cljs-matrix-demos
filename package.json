@@ -2,9 +2,8 @@
   "name": "matrix-cljs",
   "version": "0.0.1",
   "private": true,
-  "type": "module",
   "dependencies": {
-    "matrix-js-sdk": "^36.2.0"
+    "matrix-js-sdk": "37.0.0"
   },
   "devDependencies": {
     "shadow-cljs": "^2.28.21"
