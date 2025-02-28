@@ -25,3 +25,24 @@
       (<p! (.initRustCrypto client #js {:useIndexedDB false}))
       {:client client :creds creds})))
 
+(defn start-listening
+  "Attaches a timeline listener to the client that prints incoming messages.
+   label is a string identifier (e.g., \"Inviter\" or \"Invitee\")."
+  [client label]
+  (println "Attaching listener for" label)
+  (.on client "Room.timeline"
+       (fn [event]
+         (go
+           (when (= (.getType event) "m.room.message")
+             (let [clear-content (or (when (.-getClearContent event)
+                                       (.getClearContent event))
+                                     (.getContent event))
+                   body (.-body clear-content)]
+               (println (str label " received message: " body))))
+           (when (= (.getType event) "m.room.encrypted")
+             (let [_ (<p! (.getDecryptionPromise event))
+                   clear-content (.getClearContent event)
+                   body (.-body clear-content)]
+               (println (str label " received message: " body)))))))
+  (.startClient client)
+  (println label "client started."))

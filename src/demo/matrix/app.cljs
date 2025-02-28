@@ -46,15 +46,13 @@
   ;; =============================================================
   ;; Interactive Steps for Direct Encrypted Chat (Asynchronous)
   ;; =============================================================
-  ;; Some steps uses cljs.core.async/take! to capture the result
-  ;; and bind it to a global var for interactive inspection.
 
   ;; ---------------------------------
   ;; Step 1: Create the inviter client.
   (def inviter-chan (demo.matrix.client/create-client inviter-login-params))
   (cljs.core.async/take! inviter-chan
                          (fn [result]
-                           (def inviter result)
+                           (defonce inviter result)
                            (println "Inviter created:" (:creds result))))
 
   ;; ---------------------------------
@@ -62,22 +60,22 @@
   (def invitee-chan (demo.matrix.client/create-client invitee-login-params))
   (cljs.core.async/take! invitee-chan
                          (fn [result]
-                           (def invitee result)
+                           (defonce invitee result)
                            (println "Invitee created:" (:creds result))))
-
-  ;; Make sure both inviter and invitee are bound before proceeding.
-  ;; You can inspect `inviter` and `invitee` in the REPL.
 
   ;; ---------------------------------
   ;; Step 3: Create a room as the inviter, inviting the invitee.
   (def room-chan (demo.matrix.room/create-room (:client inviter)
-                                               (:userId (:creds invitee))))
+                                               "@bob:my.matrix.host"))
   (cljs.core.async/take! room-chan
                          (fn [r]
-                           (def room-id r)
+                           (defonce room-id r)
                            (println "Room created:" room-id)))
 
-  ;; ---------------------------------
+  ;; p.s. Change this based on room-id defined by inviter
+  (def room-id "!gUZcQXWFszsDCwPhQo:my.matrix.host")
+
+;; ---------------------------------
   ;; Step 4: Enable encryption in the room.
   (demo.matrix.room/enable-encryption (:client inviter) room-id)
 
@@ -88,42 +86,23 @@
   ;; ---------------------------------
   ;; Step 6: Update direct messaging account data for both sides.
   (demo.matrix.room/update-direct-message (:client inviter)
-                                          (:userId (:creds invitee))
+                                          "@bob:my.matrix.host"
                                           room-id)
-
   (demo.matrix.room/update-direct-message (:client invitee)
-                                          (:userId (:creds inviter))
+                                          "@alex:my.matrix.host"
                                           room-id)
 
   ;; ---------------------------------
-  ;; Step 7: Send a test message from the inviter.
+  ;; Step 7: Start listening to messages
+  (client/start-listening (:client inviter) "Inviter Alex")
+  (client/start-listening (:client invitee) "Invitee Bob")
+
+  ;; ---------------------------------
+  ;; Step 8: Send a test message from the inviter.
   (demo.matrix.room/send-test-message (:client inviter)
                                       room-id
-                                      "Hello from locão!")
+                                      "Hi Bob")
 
-  (defn start-listening
-    "Attaches a timeline listener to the client that prints incoming messages.
-     label is a string identifier (e.g., \"Inviter\" or \"Invitee\")."
-    [client label]
-    (println "Attaching listener for" label)
-    ;; Attach a timeline listener.
-    (.on client "Room.timeline"
-         (fn [event room toStartOfTimeline]
-           ;; Only process live events.
-           (when (and (not toStartOfTimeline)
-                      (= (.getType event) "m.room.message"))
-             (let [;; Use getClearContent if available (for decrypted events),
-                   ;; otherwise fall back to getContent.
-                   clear-content (or (when (.-getClearContent event)
-                                       (.getClearContent event))
-                                     (.getContent event))
-                   body (.-body clear-content)]
-               (println (str label " received message: " body))))))
-    ;; Start the client (if not already started).
-    (.startClient client)
-    (println label "client started."))
-  (start-listening (:client inviter) "Inviter")
-  (start-listening (:client invitee) "Invitee")
-  nil)
-
-  ; Ensure the comment block returns nil.
+  (demo.matrix.room/send-test-message (:client invitee)
+                                      room-id
+                                      "Hello Alex"))
