@@ -1,7 +1,13 @@
 ;; shadow-cljs.edn
 {:deps true
  :builds
- {:script
+ {:alex
   {:target :node-script
    :main demo.matrix.app/main
-   :output-to "out/demo/matrix/app/main.js"}}}
+   :compiler-options {:infer-externs true}
+   :output-to "out/demo/matrix/app/alex-main.js"}
+  :bob
+  {:target :node-script
+   :main demo.matrix.app/main
+   :compiler-options {:infer-externs true}
+   :output-to "out/demo/matrix/app/bob-main.js"}}}
